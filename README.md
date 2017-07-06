@@ -1,3 +1,3 @@
 # PythonDungeon
 Roguelike with Python 3
-summercurse @spielend-programmieren.de
+summercourse @spielend-programmieren.de
