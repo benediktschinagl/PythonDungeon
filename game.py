@@ -1,22 +1,22 @@
 # Dungeon Spiel Benedikt
 dungeon1="""
 ################################################################
-#...#........G.....€....w.....s..KK........G......w...K........#
+#...#....w...G.....€....w.....s..KK....w...G......w...K........#
 #...#d######################################.............s.....#
 #.€.#......€.#k....................w.......#...w....K........###
 #...#..G.....######€...G..K....K...........G.........G..K#####.#
 #.w.#....KK..G...k#.....................w..#.....K.........#€..#
 #...#...s....######....K.....€..G.....K....#.K.......K.....#...#
-#...#.K...G..#.........K...........w.......#K.....€....G...#...#
-#.w.#.....KK.#................K............#.K....K......s.#.€.#
+#...#.K...G..#.........K...w.......w.......#K.....€....G...#...#
+#.w.#.....KK.#.....s..........K............#.K....K......s.#.€.#
 #.K.#######G########.....G........w...G...<#...G....w......#.€.#
-#...#...........K..#d#######################...........K...#...#
+#...#....w......K..#d#######################...........K...#...#
 #...#.w...K...G....#...w.........w........K#.G......KK.....#...#
-#.G.#.......K.....s#......K.........K.......#....w...K.....#€..#
+#.G.#.......K.....s#......K....s....K.......#....w...K.....#€..#
 #...############G###...w.......KKK.........w.#...........#####.#
-#...G....K.........#.......G....€....wK.......##################
+#.w.G....K....w....#.......G....€....wK.......##################
 #...#.......s....K.#.s..w......KKK.......w...€.......K...Ä.....#
-#.s.#...K......€...#......K.........K...G...s...K........#..<..#
+#.s.#...K......€...#......K.........K...G...s...K....s...#..<..#
 ################################################################
 
 
@@ -65,6 +65,7 @@ import random
 import subprocess
 princess=False 
 tür="d"
+hero_key=0
 hp=200
 hero_hunger=0
 hero="@"
@@ -83,6 +84,8 @@ for d in (dungeon1,dungeon2,dungeon3):
 eg=("Mhmm!","Das tat gut!","Mehr davon!","Fressi Fressi!","Danke dafür!")
 gg=("Money,Money,Money!","Gleich bin ich reich!","Bar auf die Kralle")
 rg=("Heute ist aber ein schöner Tag!","Viel Sonne gibt es hier aber nicht")
+pg=("The princess is ugly!", "The princess is pretty")
+kg=("You are so bad!","Du bist richtig schlecht!","You have lost against a goblin!","Hihihihihi!","Da kämpft meine Oma besser!")
 while hero_hunger<50:
     hero_hunger+=random.choice((0,0,0,0,0,0,0,0,0,0,0
     ,1,1,1,1,1,1,2))
@@ -99,7 +102,11 @@ while hero_hunger<50:
             else:
                 print(c,end="")
         print()
-    command=input("gold:{} food:{} hunger:{} hp:{} Was willst du nun tun?".format(hero_gold,food,hero_hunger,hp))
+    if hero_hunger > 40:
+        wahrscheinlichkeit=0.15
+        if random.random() < wahrscheinlichkeit:
+            subprocess.call(("espeak","I am very hungry!"))
+    command=input("gold:{} food:{} hunger:{} hp:{} keys:{} Was willst du nun tun?".format(hero_gold,food,hero_hunger,hp,hero_key))
     dx=0 
     dy=0
     if command=="a":
@@ -119,6 +126,16 @@ while hero_hunger<50:
             food -= 1
             hero_hunger -= random.randint(2,3) 
             print(random.choice(eg))
+    if command=="fly down":
+        if heroz==len(level)-1:
+            print("Du bist schon im untersten Level")
+        else:
+            heroz+=1
+    if command=="fly up":
+        if heroz==0:
+            print ("Du bist schon im obersten Level")
+        else:
+            heroz-=1
     if command=="cheat":
         hp+=100
         subprocess.call(("espeak","Cheater"))
@@ -159,12 +176,14 @@ while hero_hunger<50:
         if hp < 1:
             print ("Du stirbst! Versager! Das war doch nur ein Kobold!")
             break
-        sieg=0.6
+        sieg=0.4
         if random.random() < sieg:
             print ("Du erledigst den Kobold mit Gewalt")
             level[heroz][heroy+dy][herox+dx]="."
         else:
             print ("Du verlierst!")
+            print(random.choice(kg))
+            subprocess.call(("espeak",random.choice(kg)))
             dx=0
             dy=0
     #-------Kobold-Ende--------
@@ -182,10 +201,23 @@ while hero_hunger<50:
         if random.random() < sieg:
             print ("Du erledigst heldenhaft den Gorilla")
             level[heroz][heroy+dy][herox+dx]="."
+        else:
             print ("Du verlierst!")
             dx=0
             dy=0
     #------Gorilla-Ende------
+    #------Tür-Anfang--------
+    if target=="d":
+        if hero_key > 0:
+            hero_key-=1
+            level[heroz][heroy+dy][herox+dx]="."
+            print("Tür erfolgreich geöffnet!")
+        else:
+            dx=0
+            dy=0
+            print("Autsch das war eine geschlossene Tür!")
+        
+    #------Tür-Ende------
     herox+=dx
     heroy+=dy
     # aufheben
@@ -201,9 +233,22 @@ while hero_hunger<50:
         food+=3
         level[heroz][heroy][herox]="."
         print(random.choice(rg))
+    if stuff=="k":
+        hero_key+=1
+        level[heroz][heroy][herox]="."
+    if stuff=="<":
+        c2 = input("Das ist eine Treppe! Willst du hinunter?")
+        if c2==("yes"):
+            heroz+=1
+    if stuff==">":
+        c2 = input("Das ist eine Treppe! Willst du hinauf?")
+        if c2==("yes"):
+            heroz-=1
+        
     if stuff=="p":
         level[heroz][heroy][herox]="."
         subprocess.call(("espeak","Congratulation you have saved the princess!"))
+        subprocess.call(("espeak",random.choice(pg)))
         princess=True
         break
  
